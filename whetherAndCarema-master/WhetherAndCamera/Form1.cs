@@ -14,14 +14,18 @@ using AForge.Video;
 using AForge.Video.DirectShow;
 using AForge.Video.FFMPEG;
 using System.IO;
-namespace WhetherAndCamera
+namespace WeatherAndCamera
 {
     public partial class Form1 : Form
     {
+        Weather weather;
         public Form1()
         {
             InitializeComponent();
-           
+            weather = new Weather();
+            toolStripComboBox2.Items.Add("   ");
+            for (int i = 0; i < weather.ProvinceCodes.Keys.Count; i++)
+                toolStripComboBox2.Items.Add(weather.ProvinceCodes.Keys.ToList()[i]);
         }
         FilterInfoCollection videoDevices; //摄像头设备  
         VideoCaptureDevice videoSource;
@@ -197,5 +201,51 @@ namespace WhetherAndCamera
             }
         }
 
+        private void toolStripComboBox2_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            toolStripTextBox1.Text = "";
+            toolStripComboBox3.Text = "";
+            toolStripComboBox4.Text = "";
+            toolStripComboBox3.Items.Clear();
+            toolStripComboBox3.Items.Add("   ");
+            try
+            {
+                string str = (string)toolStripComboBox2.SelectedItem;
+                toolStripComboBox3.Items.AddRange(weather.getCityCodes(str).Keys.ToList().ToArray());
+            }
+            catch { }
+        }
+
+        private void toolStripComboBox3_SelectedIndexChanged(object sender, EventArgs e)
+        {
+           
+            toolStripTextBox1.Text = "";
+            toolStripComboBox4.Text = "";
+            toolStripComboBox4.Items.Clear();
+            toolStripComboBox4.Items.Add("   ");
+            try
+            {
+                string str = (string)toolStripComboBox3.SelectedItem;
+                toolStripComboBox4.Items.AddRange(weather.getCountyTownCodes(str).Keys.ToList().ToArray());
+            }
+            catch { }
+        }
+
+        private void 查询ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                Dictionary<string, string> strs1 = weather.getTodayWeather(toolStripComboBox3.Text,
+                    toolStripComboBox4.Text);
+                Dictionary<string, string> strs2 = weather.getRealTimeWeather(toolStripComboBox3.Text,
+                    toolStripComboBox4.Text);
+                toolStripTextBox1.Text = String.Format("天气：{0}，气温：{1}", strs1["weather"], strs1["temp1"]+"~"+ strs1["temp2"]);
+            }
+            catch
+            {
+                MessageBox.Show("无法获取该地天气！", "", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
+        }
     }
 }
