@@ -24,6 +24,7 @@ namespace WhetherAndCamera
            
         }
         FilterInfoCollection videoDevices; //摄像头设备  
+        VideoCaptureDevice videoSource;
         VideoFileWriter videoWriter = null;
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -35,10 +36,10 @@ namespace WhetherAndCamera
             if (videoDevices == null)
                 return;
             FilterInfo info = videoDevices[0];//选取第一个,此处可作灵活改动
-            VideoCaptureDevice videoSource = new VideoCaptureDevice(info.MonikerString);//视频的来源选择 
+            videoSource = new VideoCaptureDevice(info.MonikerString);//视频的来源选择 
             videoSourcePlayer1.VideoSource = videoSource;
             toolStripComboBox1.Text = videoDevices[0].Name;
-          //  videoSource.NewFrame += new NewFrameEventHandler(show_video);
+           
 
 
         }
@@ -110,8 +111,15 @@ namespace WhetherAndCamera
         }
         bool isShooting = false;
         const int frameRate = 10;
+        string VideoFileName;
+        string VideoFile;
         private void 录像ToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            if (!videoSourcePlayer1.IsRunning)
+            {
+                MessageBox.Show("摄像头未启动!","视频录制", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
             isShooting = !isShooting;
             if (isShooting)
             {
@@ -123,21 +131,33 @@ namespace WhetherAndCamera
                 saveDialog.Filter = "视频文件(*.avi)|*.avi";
                 if (saveDialog.ShowDialog() == DialogResult.OK)
                 {
-                    NewVideo(saveDialog.FileName);
+                    //  NewVideo(saveDialog.FileName);
+                    string[] strs = saveDialog.FileName.Split('\\');
+                    VideoFile = "";
+                    for (int i = 0; i < strs.Length - 1; i++)
+                        VideoFile += strs[i] + "\\";
+                    VideoFileName = saveDialog.FileName;
+                    videoSourcePlayer1.NewFrame += new AForge.Controls.VideoSourcePlayer.NewFrameHandler(sourcePlayer_NewFrame);                  
                     录像ToolStripMenuItem.Text = "结束录像";
                 }
                 
             }
             else
             {
+                videoSourcePlayer1.NewFrame -= new AForge.Controls.VideoSourcePlayer.NewFrameHandler(sourcePlayer_NewFrame);
                 录像ToolStripMenuItem.Text = "开始录像";
+                isBeginWriteVideo = false;
                 if (videoWriter != null)
                 {
                     videoWriter.Close();
                     videoWriter.Dispose();
+                    if (MessageBox.Show("录制成功,是否查看视频？", "", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                        System.Diagnostics.Process.Start(VideoFileName);
                 }
+
             }
         }
+        bool isBeginWriteVideo=false;
         private void NewVideo(string FileName)
         {
             if (videoWriter != null)
@@ -145,17 +165,19 @@ namespace WhetherAndCamera
                 videoWriter.Close();
                 videoWriter.Dispose();
             }
-            if (videoSourcePlayer1.IsRunning)
+            try
             {
                 Bitmap image = new Bitmap(640, 480);
                 videoWriter = new VideoFileWriter();
                 //这里必须是全路径，否则会默认保存到程序运行根据录下了
                 videoWriter.Open(FileName, image.Width, image.Height, frameRate, VideoCodec.MPEG4);
-              //  videoWriter.WriteVideoFrame(image);
+                videoWriter.WriteVideoFrame(image);
+                isBeginWriteVideo = true;
+                
             }
-            else
+            catch
             {
-                MessageBox.Show("摄像头未打开");
+                MessageBox.Show("录制视频错误");
             }
         }
         private void show_video(object sender, NewFrameEventArgs eventArgs)
@@ -165,5 +187,15 @@ namespace WhetherAndCamera
                 videoWriter.WriteVideoFrame(eventArgs.Frame);
             }
         }
+        private void sourcePlayer_NewFrame(object sender, ref Bitmap image)
+        {
+            if (!isBeginWriteVideo)
+                NewVideo(VideoFileName);
+            else
+            {
+                videoWriter.WriteVideoFrame(image);
+            }
+        }
+
     }
 }
