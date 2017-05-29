@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace WhetherAndCamera.Properties {
+namespace WeatherAndCamera.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
